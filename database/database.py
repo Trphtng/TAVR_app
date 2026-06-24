@@ -24,10 +24,30 @@ Base = declarative_base()
 
 def init_db() -> None:
     """
-    Import models and create all database tables.
+    Import models, create all database tables, and run schema migration inspections.
     """
     import database.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    
+    # Simple migration: dynamically add columns to existing table if they don't exist
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    if "vocabulary" in inspector.get_table_names():
+        existing_columns = [col["name"] for col in inspector.get_columns("vocabulary")]
+        
+        new_columns = {
+            "difficulty": "INTEGER DEFAULT 0",
+            "status": "VARCHAR DEFAULT 'new'",
+            "review_count": "INTEGER DEFAULT 0",
+            "next_review": "DATETIME",
+            "last_review": "DATETIME"
+        }
+        
+        with engine.begin() as conn:
+            for col_name, col_type in new_columns.items():
+                if col_name not in existing_columns:
+                    conn.execute(text(f"ALTER TABLE vocabulary ADD COLUMN {col_name} {col_type}"))
+
 
 # Track if the database has been initialized
 _db_initialized = False

@@ -31,3 +31,11 @@ class Vocabulary(Base):
     topic: Optional[str] = Column(String, nullable=True, index=True)
     created_at: datetime = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
+    # Learning system fields
+    difficulty: Optional[int] = Column(Integer, default=0, nullable=True)
+    status: Optional[str] = Column(String, default="new", nullable=True)
+    review_count: int = Column(Integer, default=0, nullable=False)
+    next_review: Optional[datetime] = Column(DateTime, nullable=True)
+    last_review: Optional[datetime] = Column(DateTime, nullable=True)
+
+
