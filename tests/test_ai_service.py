@@ -77,14 +77,14 @@ def test_json_parsing_invalid():
         extract_json(invalid_text)
     assert "Failed to parse JSON" in str(excinfo.value)
 
-@patch("services.ai_service.genai.GenerativeModel")
+@patch("services.ai_service.genai.Client")
 @patch("services.ai_service.GEMINI_API_KEY", "mock_key")
-def test_analyze_word_success(mock_model_class):
+def test_analyze_word_success(mock_client_class):
     """
     Test the main service function analyze_word with a mocked Gemini API.
     """
-    mock_model_instance = MagicMock()
-    mock_model_class.return_value = mock_model_instance
+    mock_client_instance = MagicMock()
+    mock_client_class.return_value = mock_client_instance
     
     mock_response = MagicMock()
     mock_response.text = """
@@ -103,11 +103,12 @@ def test_analyze_word_success(mock_model_class):
 }
 ```
 """
-    mock_model_instance.generate_content.return_value = mock_response
+    mock_client_instance.models.generate_content.return_value = mock_response
     
     with patch.dict("os.environ", {"AI_PROVIDER": "gemini"}):
         result = analyze_word("closure", "JavaScript closures are useful.")
         
     assert result["word"] == "closure"
     assert result["topic"] == "Programming"
-    mock_model_instance.generate_content.assert_called_once()
+    mock_client_instance.models.generate_content.assert_called_once()
+

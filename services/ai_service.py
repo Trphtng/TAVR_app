@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from google import genai
 from config import GEMINI_API_KEY, AI_PROVIDER
 from services.prompts import VOCAB_ANALYSIS_PROMPT_TEMPLATE
 from utils.json_parser import extract_json
@@ -17,13 +17,14 @@ def analyze_word(word: str, context: str) -> dict:
         if not api_key or api_key == "your_api_key_here":
             raise ValueError("GEMINI_API_KEY is not configured or is using the placeholder value.")
         
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         # Using gemini-1.5-flash as the default fast text generation model
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
-        # Call API
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         response_text = response.text
+
     else:
         raise ValueError(f"Unsupported AI provider: {provider}")
         
