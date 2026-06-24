@@ -69,6 +69,8 @@ with col1:
     # Selection of input method
     mode = st.radio("Input Method", ["Manual Input", "Upload PDF Document"], horizontal=True)
     
+    word_val = ""
+    context_val = ""
     default_source = ""
     
     if mode == "Upload PDF Document":
@@ -77,6 +79,7 @@ with col1:
             import tempfile
             import os
             from services.document_service import process_document
+            from components.pdf_viewer import render_pdf_viewer
             
             # Save uploaded bytes to a temp file to allow PyMuPDF processing
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -89,11 +92,12 @@ with col1:
                 
                 if pages:
                     st.success(f"Processed {uploaded_file.name} ({len(pages)} pages)")
-                    page_num = st.number_input("Select Page", min_value=1, max_value=len(pages), value=1)
-                    page_data = pages[page_num - 1]
+                    selected_word, extracted_context = render_pdf_viewer(pages)
                     
-                    st.text_area("Page Text Content", value=page_data["text"], height=150, disabled=True)
-                    default_source = f"{uploaded_file.name} (Page {page_num})"
+                    if selected_word:
+                        word_val = selected_word
+                        context_val = extracted_context
+                    default_source = f"{uploaded_file.name} (Page {st.session_state.get('pdf_page_num', 1)})"
             except Exception as e:
                 st.error(f"Error processing PDF: {e}")
                 if os.path.exists(tmp_path):
@@ -101,8 +105,8 @@ with col1:
     
     # Inputs form
     with st.form("analyze_form"):
-        word = st.text_input("Technical Word", placeholder="e.g. closure, decorator, database")
-        context = st.text_area("Context", placeholder="Provide the sentence or context where you encountered the word...", height=120)
+        word = st.text_input("Technical Word", value=word_val, placeholder="e.g. closure, decorator, database")
+        context = st.text_area("Context", value=context_val, placeholder="Provide the sentence or context where you encountered the word...", height=120)
         source = st.text_input("Source Document / URL", value=default_source, placeholder="e.g. JavaScript Guide, page 42")
         
         submit_btn = st.form_submit_button("Analyze")
@@ -135,31 +139,8 @@ with col2:
         data = st.session_state.analyzed_data
         
         # UI Card Box
-        st.markdown(f"""
-        <div class="vocab-card">
-            <h3>{data.get('word')}</h3>
-            <p><strong>Topic:</strong> {data.get('topic', 'General')}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Tabs for translations, explanations, and examples
-        tab1, tab2, tab3 = st.tabs(["Translations", "Explanations", "Examples"])
-        
-        with tab1:
-            st.write(f"🇻🇳 **Vietnamese Translation:** {data.get('translation_vi')}")
-            st.write(f"🇬🇧 **English Translation:** {data.get('translation_en')}")
-            
-        with tab2:
-            st.write(f"**Technical Explanation (EN):** {data.get('technical_explanation_en')}")
-            st.write(f"**Technical Explanation (VI):** {data.get('technical_explanation_vi')}")
-            st.write(f"**Simple Explanation (EN):** {data.get('simple_explanation_en')}")
-            st.write(f"**Simple Explanation (VI):** {data.get('simple_explanation_vi')}")
-            
-        with tab3:
-            st.write(f"**Example Sentence (EN):** *{data.get('example_en')}*")
-            st.write(f"**Example Sentence (VI):** *{data.get('example_vi')}*")
-            
-        st.write(" ")
+        from components.vocabulary_card import render_vocabulary_card
+        render_vocabulary_card(data)
         
         # Save Action Button
         if st.button("Save to Vocabulary List"):
